@@ -1,8 +1,9 @@
 # Simple demo — website
 
-Simple demo is a whole learning site in one page: 150 lessons, 1,020 practice
-problems in Simple, Python and Java, an IDE, accounts, points, badges,
-profile customization and a leaderboard.
+Simple demo is a whole learning site in one page: 299 lessons in five courses (every one with a step-by-step walkthrough)
+(Simple Blocks, Simple, Python, Java and an optional C++ course), 1,200 practice
+problems, an IDE for blocks, Simple, Python, Java and C++, accounts with a
+personal learning path, points, badges, profile customization and a leaderboard.
 
 Invented by Bharat Seethagari.
 
