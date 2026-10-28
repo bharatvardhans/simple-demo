@@ -1,6 +1,6 @@
 # Simple demo — website
 
-Simple demo is a whole learning site in one page: 299 lessons in five courses (every one with a step-by-step walkthrough)
+Simple demo is a whole learning site in one page: 299 lessons in five courses (every one with a step-by-step walkthrough), 6 new practice problems in every topic every day
 (Simple Blocks, Simple, Python, Java and an optional C++ course), 1,200 practice
 problems, an IDE for blocks, Simple, Python, Java and C++, accounts with a
 personal learning path, points, badges, profile customization and a leaderboard.
@@ -112,3 +112,11 @@ saying the AI helper isn't available, and everything else works as usual.
 - Weekly contests: a `contests` table with problem ids and start/end times.
 - Help each other: a `questions` table with replies, linked to problem ids.
 - Classes: a `groups` table so teachers can see their students' progress.
+
+
+## Email accounts: no confirmation emails
+
+The site doesn't make anyone wait for a confirmation email. In Supabase, open
+Authentication → Sign In / Providers → Email and switch OFF "Confirm email",
+then Save. Until that is switched off, new accounts are kept in the browser
+they were made in, so nobody gets stuck.
