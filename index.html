@@ -598,6 +598,16 @@ button.warn{color:var(--bad)}
 .dailyhead select{max-width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:14px}
 .newtag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#ffd257;color:#3a2a00;vertical-align:middle;letter-spacing:.02em}
 .probcard.daily .pnum{color:#8a5a00}
+
+/* code of the day */
+.cotd{margin:18px 0;padding:16px 18px;border:2px solid #ffd257}
+.cotdhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.cotd h2{margin:6px 0 4px}
+.cotdstory{background:var(--code);border-radius:10px;padding:10px 12px;font-size:15px}
+.cotdtabs{margin:10px 0 6px;gap:6px}
+.cotdtabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.cotdcode{max-height:360px;overflow:auto}
+.muted.small,.small.muted{font-size:13px}
 /* ===== Simple Blocks ===== */
 .bed{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:0;background:var(--code);border-bottom:1px solid var(--line);min-height:240px}
 .bpal{border-right:1px solid var(--line);padding:10px 10px 14px;display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto;background:var(--surface);transition:background .15s}
@@ -689,6 +699,7 @@ button.warn{color:var(--bad)}
     </section>
   </div>
   <div id="aboutContinue"></div>
+  <section class="card cotd" id="cotdBox" aria-label="Code of the day"></section>
 
   <div class="facts">
     <article class="card fact"><span class="q">What is it?</span><h3>A language in sentences</h3><p>Every line reads like English and ends with a period. No curly brackets, no semicolons, no type words. Simple works out the details, then shows you the same program in Python, Java, C++, C, assembly and bytes.</p></article>
@@ -892,7 +903,7 @@ button.warn{color:var(--bad)}
   <div id="profilePane"></div>
 </section>
 </div>
-<footer class="sitefoot">Powered by Claude<span class="ver">Version 27 Oct 2026 (c)</span></footer>
+<footer class="sitefoot">Powered by Claude<span class="ver">Version 27 Oct 2026 (d)</span></footer>
 <div class="celebrate" id="celebrate" aria-live="polite"></div>
 
 <script>
@@ -10609,6 +10620,515 @@ if (typeof module !== "undefined") module.exports = Daily;
   } });
 })();
 
+/* ===== Code of the day: a new program every day at 7:00 AM New York time =====
+   Most days it's a small app for something people do every day. Some days it's famous code from history. */
+const Cotd = (() => {
+  const L = [
+    { title: "Tip calculator", kind: "app", why: "Works out the tip and the total at a restaurant, so nobody has to do it in their head.", inputs: ["48.50", "15"], code:
+`Start code:
+    Ask "How much is the bill?" as decimal bill.
+    Ask "What percent tip?" as number percent.
+    Remember tip as bill * percent / 100.0.
+    Say "Tip: " + tip rounded.
+    Say "Total: " + (bill + tip) rounded.` },
+    { title: "Split the bill", kind: "app", why: "Shares a bill fairly between friends, and says what's left over if it doesn't divide evenly.", inputs: ["87", "4"], code:
+`Start code:
+    Ask "What is the total?" as number total.
+    Ask "How many people?" as number people.
+    Say "Each person pays " + total / people.
+    If total is not a multiple of people:
+        Say "And " + total % people + " is left over. Someone gets the change!".` },
+    { title: "Water tracker", kind: "app", why: "A screen app with buttons: tap once for every glass of water you drink today.", code:
+`Start code:
+    Remember glasses as 0.
+    Remember message as "Goal: 8 glasses".
+    Show a heading "Water today".
+    Show glasses.
+    Show message.
+    Show buttons "+1 glass" and "Start again".
+    When button "+1 glass" is pressed:
+        Add 1 to glasses.
+        If glasses is at least 8:
+            Remember message as "Goal reached. Well done!".
+        Otherwise:
+            Remember message as (8 - glasses) + " to go".
+    When button "Start again" is pressed:
+        Remember glasses as 0.
+        Remember message as "Goal: 8 glasses".` },
+    { title: "Saving up", kind: "app", why: "Tells you how many weeks of saving it takes to buy something you want.", inputs: ["60", "7"], code:
+`Start code:
+    Ask "How much does it cost?" as number price.
+    Ask "How much can you save each week?" as number perWeek.
+    Remember saved as 0.
+    Remember weeks as 0.
+    Repeat until saved is at least price:
+        Add perWeek to saved.
+        Add 1 to weeks.
+    Say "You can buy it in " + weeks + " weeks.".
+    Say "You will have " + (saved - price) + " left over.".` },
+    { title: "Grade average", kind: "app", why: "Type your test scores and get your average, best and worst score.", inputs: ["88", "92", "75", "0"], code:
+`Start code:
+    Remember scores as an empty list of numbers.
+    Repeat while true:
+        Ask "Score (0 to finish):" as number score.
+        If score is 0:
+            Stop repeating.
+        Add score to scores.
+    If the size of scores is 0:
+        Say "No scores yet.".
+    Otherwise:
+        Say "Average: " + the total of scores / the size of scores.
+        Say "Best: " + the biggest of scores.
+        Say "Lowest: " + the smallest of scores.` },
+    { title: "Shopping list", kind: "app", why: "Builds a shopping list as you type, then shows it in order with no repeats.", inputs: ["milk", "eggs", "milk", "bread", "done"], code:
+`Start code:
+    Remember shopping as an empty list of text.
+    Repeat while true:
+        Ask "Add an item (or done):" as item.
+        If item is "done":
+            Stop repeating.
+        If shopping contains item:
+            Say item + " is already on the list.".
+        Otherwise:
+            Add item to shopping.
+    Say "Your list:".
+    Say shopping sorted.` },
+    { title: "Times table quiz", kind: "app", why: "Five quick times-table questions with a score at the end. Good for practising before a test.", inputs: ["1", "1", "1", "1", "1"], code:
+`Start code:
+    Remember score as 0.
+    Repeat 5 times:
+        Remember x as a random number from 2 to 12.
+        Remember y as a random number from 2 to 12.
+        Say "What is " + x + " x " + y + "?".
+        Ask "Your answer:" as number guess.
+        If guess is x * y:
+            Say "Right!".
+            Add 1 to score.
+        Otherwise:
+            Say "Not quite: it's " + x * y + ".".
+    Say "You got " + score + " out of 5.".`, random: true },
+    { title: "Temperature converter", kind: "app", why: "Turns Celsius into Fahrenheit, and tells you what to wear.", inputs: ["18"], code:
+`Start code:
+    Ask "Temperature in Celsius?" as decimal c.
+    Remember f as c * 9.0 / 5.0 + 32.
+    Say c + " C is " + f + " F".
+    If c is less than 10:
+        Say "Wear a coat!".
+    Otherwise if c is less than 20:
+        Say "A jumper will do.".
+    Otherwise:
+        Say "T-shirt weather.".` },
+    { title: "Password checker", kind: "app", why: "Checks if a password is strong: long enough, with a capital letter and a digit.", inputs: ["sunshine7"], code:
+`Start code:
+    Ask "Type a password to check:" as pw.
+    Remember problems as 0.
+    If the size of pw is less than 8:
+        Say "Make it at least 8 characters long.".
+        Add 1 to problems.
+    If pw in small letters is pw:
+        Say "Add a capital letter.".
+        Add 1 to problems.
+    Remember digits as 0.
+    For each ch in pw:
+        If "0123456789" contains ch:
+            Add 1 to digits.
+    If digits is 0:
+        Say "Add a digit.".
+        Add 1 to problems.
+    If problems is 0:
+        Say "Strong password!".` },
+    { title: "Reading plan", kind: "app", why: "Plans how many pages to read each day to finish a book on time.", inputs: ["320", "14"], code:
+`Start code:
+    Ask "How many pages is the book?" as number pages.
+    Ask "How many days do you have?" as number days.
+    Remember perDay as pages / days.
+    If pages is not a multiple of days:
+        Add 1 to perDay.
+    Say "Read " + perDay + " pages a day.".
+    For each day from 1 to 3:
+        Say "Day " + day + ": up to page " + the smaller of day * perDay and pages.` },
+    { title: "Chore picker", kind: "app", why: "Can't agree who does what? Let the computer pick a chore for each person.", code:
+`Start code:
+    Remember chores as ["dishes", "bins", "hoovering", "laundry"].
+    Remember people as ["Ana", "Ben", "Chloe"].
+    For each person in people:
+        Remember pick as a random number from 1 to the size of chores.
+        Say person + " does the " + item pick of chores + ".".
+        Remove item pick from chores.`, random: true },
+    { title: "Dice roller", kind: "app", why: "Lost the dice? This screen app rolls two for you and adds them up.", code:
+`Start code:
+    Remember dice1 as 1.
+    Remember dice2 as 1.
+    Remember total as 2.
+    Show a heading "Dice".
+    Show dice1.
+    Show dice2.
+    Show total.
+    Show buttons "Roll".
+    When button "Roll" is pressed:
+        Remember dice1 as a random number from 1 to 6.
+        Remember dice2 as a random number from 1 to 6.
+        Remember total as dice1 + dice2.`, random: true },
+    { title: "Countdown to a big day", kind: "app", why: "Turns 'days until my birthday' into weeks and days.", inputs: ["45"], code:
+`Start code:
+    Ask "How many days until the big day?" as number days.
+    Say "That's " + days / 7 + " weeks and " + days % 7 + " days.".
+    Say "That's " + days * 24 + " hours!".
+    If days is at most 7:
+        Say "Nearly there!".` },
+    { title: "Step goal", kind: "app", why: "Shows how close you are to your step goal, with a progress bar made of text.", inputs: ["6500", "10000"], code:
+`Start code:
+    Ask "Steps today?" as number steps.
+    Ask "Your goal?" as number goal.
+    Remember percent as the smaller of steps * 100 / goal and 100.
+    Remember bar as "".
+    Repeat percent / 10 times:
+        Add "#" to bar.
+    Repeat 10 - percent / 10 times:
+        Add "." to bar.
+    Say "[" + bar + "] " + percent + "%".
+    If steps is at least goal:
+        Say "Goal reached!".
+    Otherwise:
+        Say (goal - steps) + " steps to go.".` },
+    { title: "Study blocks", kind: "app", why: "Splits study time into 25-minute blocks with 5-minute breaks (the Pomodoro method).", inputs: ["100"], code:
+`Start code:
+    Ask "How many minutes can you study?" as number minutes.
+    Remember blocks as minutes / 30.
+    For each b from 1 to blocks:
+        Say "Block " + b + ": study 25 minutes, then rest 5.".
+    Remember extra as minutes % 30.
+    If extra is more than 0:
+        Say "Then " + extra + " minutes to review.".` },
+    { title: "Scoreboard", kind: "app", why: "Keeps the score for a game between two teams, with buttons for each team.", code:
+`Start code:
+    Remember red as 0.
+    Remember blue as 0.
+    Remember leader as "It's a draw".
+    Show a heading "Red vs Blue".
+    Show red.
+    Show blue.
+    Show leader.
+    Show buttons "Red +1", "Blue +1" and "Reset".
+    When any button is pressed:
+        If the button is "Red +1":
+            Add 1 to red.
+        Otherwise if the button is "Blue +1":
+            Add 1 to blue.
+        Otherwise:
+            Remember red as 0.
+            Remember blue as 0.
+        If red is more than blue:
+            Remember leader as "Red is winning".
+        Otherwise if blue is more than red:
+            Remember leader as "Blue is winning".
+        Otherwise:
+            Remember leader as "It's a draw".` },
+    { title: "Packing check", kind: "app", why: "Goes through a packing list before a trip and tells you what you've forgotten.", inputs: ["yes", "no", "yes", "no"], code:
+`Start code:
+    Remember stuff as ["toothbrush", "charger", "water bottle", "jacket"].
+    Remember missing as an empty list of text.
+    For each thing1 in stuff:
+        Say "Packed your " + thing1 + "?".
+        Ask "(yes/no)" as reply.
+        If reply is not "yes":
+            Add thing1 to missing.
+    If the size of missing is 0:
+        Say "All packed. Have a great trip!".
+    Otherwise:
+        Say "Don't forget: " + missing joined with ", ".` },
+    { title: "Essay word counter", kind: "app", why: "Counts the words and letters in your writing, and finds the longest word.", inputs: ["Coding in simple English is fun"], code:
+`Start code:
+    Ask "Paste a sentence:" as writing.
+    Remember words as the words of writing.
+    Remember longest as "".
+    Remember letters as 0.
+    For each w in words:
+        Add the size of w to letters.
+        If the size of w is more than the size of longest:
+            Remember longest as w.
+    Say "Words: " + the size of words.
+    Say "Letters: " + letters.
+    Say "Longest word: " + longest.` },
+    { title: "Pocket money budget", kind: "app", why: "Plans what you'll spend this week and warns you if it's more than you have.", inputs: ["20", "6", "8", "0"], code:
+`Start code:
+    Ask "How much money do you have?" as number money.
+    Remember spent as 0.
+    Repeat while true:
+        Ask "Cost of something you want (0 to finish):" as number cost.
+        If cost is 0:
+            Stop repeating.
+        Add cost to spent.
+    If spent is more than money:
+        Say "That's " + (spent - money) + " too much. Take something off!".
+    Otherwise:
+        Say "OK! You'll have " + (money - spent) + " left.".` },
+    { title: "How many days old?", kind: "app", why: "Works out roughly how many days, hours and minutes you've been alive.", inputs: ["12"], code:
+`Start code:
+    Ask "How old are you?" as number age.
+    Remember days as age * 365 + age / 4.
+    Say "About " + days + " days old.".
+    Say "That's about " + days * 24 + " hours,".
+    Say "or " + days * 24 * 60 + " minutes!".` },
+    { title: "Flashcards", kind: "app", why: "A quick quiz from two lists: one of questions and one of answers. Change them to revise anything.", inputs: ["Paris", "8", "H2O"], code:
+`Start code:
+    Remember questions as ["Capital of France?", "How many legs does a spider have?", "Formula for water?"].
+    Remember answers as ["Paris", "8", "H2O"].
+    Remember score as 0.
+    For each k from 1 to the size of questions:
+        Say item k of questions.
+        Ask "Your answer:" as guess.
+        If guess in small letters is (item k of answers) in small letters:
+            Say "Correct!".
+            Add 1 to score.
+        Otherwise:
+            Say "The answer is " + item k of answers + ".".
+    Say "Score: " + score + " out of " + the size of questions.` },
+    { title: "Habit streak", kind: "app", why: "A screen app that keeps your streak for a daily habit, like reading or practising piano.", code:
+`Start code:
+    Remember streak as 0.
+    Remember best as 0.
+    Show a heading "My habit streak".
+    Show streak.
+    Show best.
+    Show buttons "Did it today" and "Missed a day".
+    When button "Did it today" is pressed:
+        Add 1 to streak.
+        Remember best as the bigger of best and streak.
+    When button "Missed a day" is pressed:
+        Remember streak as 0.` },
+    { title: "Recipe scaler", kind: "app", why: "A recipe is for 4 people, but you're cooking for more (or fewer). This scales every ingredient.", inputs: ["6"], code:
+`Start code:
+    Remember amounts as [200, 100, 2, 300].
+    Remember names as ["g flour", "g sugar", "eggs", "ml milk"].
+    Ask "How many people are eating?" as number people.
+    Say "For " + people + " people:".
+    For each k from 1 to 4:
+        Say (item k of amounts * people / 4) + " " + item k of names.` },
+    { title: "Number guessing game", kind: "app", why: "The classic game: the computer picks a number and tells you higher or lower.", inputs: ["50", "25", "12", "6", "3", "1", "2", "4", "5", "7"], code:
+`Start code:
+    Remember secret as a random number from 1 to 100.
+    Remember tries as 0.
+    Repeat while true:
+        Ask "Guess 1 to 100:" as number guess.
+        Add 1 to tries.
+        If guess is secret:
+            Say "Yes! " + tries + " tries.".
+            Stop repeating.
+        Otherwise if guess is less than secret:
+            Say "Higher!".
+        Otherwise:
+            Say "Lower!".
+        If tries is 10:
+            Say "Out of tries! It was " + secret + ".".
+            Stop repeating.`, random: true },
+    { title: "Rock, paper, scissors", kind: "app", why: "Play the computer at rock, paper, scissors. Best of three.", inputs: ["rock", "paper", "scissors"], code:
+`Start code:
+    Remember moves as ["rock", "paper", "scissors"].
+    Remember wins as 0.
+    Repeat 3 times:
+        Ask "rock, paper or scissors?" as mine.
+        Remember theirs as item a random number from 1 to 3 of moves.
+        Say "Computer: " + theirs.
+        If mine is theirs:
+            Say "Draw.".
+        Otherwise if (mine is "rock" and theirs is "scissors") or (mine is "paper" and theirs is "rock") or (mine is "scissors" and theirs is "paper"):
+            Say "You win this one!".
+            Add 1 to wins.
+        Otherwise:
+            Say "Computer wins this one.".
+    Say "You won " + wins + " of 3.".`, random: true },
+    { title: "What time is it there?", kind: "app", why: "Turns a time in New York into the time in London, Tokyo and Sydney.", inputs: ["15"], code:
+`Start code:
+    Ask "Hour in New York (0 to 23)?" as number hour.
+    Remember cities as ["London", "Tokyo", "Sydney"].
+    Remember gaps as [5, 14, 16].
+    For each k from 1 to 3:
+        Remember there as (hour + item k of gaps) % 24.
+        Say item k of cities + ": " + there + ":00".
+    Note: real time zones also change with summer time, so these are rough.` },
+    { title: "Lunch money tracker", kind: "app", why: "Keeps track of lunch money for the week, day by day.", inputs: ["4", "3", "5", "4", "6"], code:
+`Start code:
+    Remember days as ["Mon", "Tue", "Wed", "Thu", "Fri"].
+    Remember spent as an empty list of numbers.
+    For each d in days:
+        Say "Spent on " + d + "?".
+        Ask "Amount:" as number cost.
+        Add cost to spent.
+    Say "This week: " + the total of spent.
+    Say "Most in one day: " + the biggest of spent.
+    Say "Busiest day: " + item the position of the biggest of spent in spent of days.` },
+    { title: "Palindrome checker", kind: "app", why: "Checks if a word or phrase reads the same backwards, ignoring spaces and capitals.", inputs: ["Never odd or even"], code:
+`Start code:
+    Ask "Type a word or phrase:" as phrase.
+    Remember letters as (the words of phrase joined with "") in small letters.
+    If letters is letters reversed:
+        Say "Yes! It reads the same both ways.".
+    Otherwise:
+        Say "No, backwards it's: " + letters reversed.` },
+    { title: "Bus fare helper", kind: "app", why: "Works out the cheapest way to pay for a week of bus trips.", inputs: ["8"], code:
+`Start code:
+    Ask "How many bus trips this week?" as number trips.
+    Remember single as trips * 3.
+    Remember pass as 20.
+    Say "Paying each time: " + single.
+    Say "Weekly pass: " + pass.
+    If single is less than pass:
+        Say "Pay each time and save " + (pass - single) + ".".
+    Otherwise:
+        Say "Buy the pass and save " + (single - pass) + ".".`.replace(/\bpass\b/g, "weekPass").replace("Weekly weekPass", "Weekly pass").replace("Buy the weekPass", "Buy the pass") },
+
+    /* famous code from history */
+    { title: "Hello, world!", kind: "famous", why: "The first program almost everyone writes.", story: 'The words "hello, world" first appeared in a 1972 programming tutorial by Brian Kernighan at Bell Labs, and became famous in his 1978 book about the C language. Since then, it has been the first program in almost every language.', code:
+`Start code:
+    Say "Hello, world!".` },
+    { title: "Euclid's greatest common divisor", kind: "famous", why: "One of the oldest algorithms still used every day, for example inside the maths that keeps websites secure.", story: "Euclid wrote this method down in his book Elements around 300 BC. It finds the biggest number that divides two numbers, using only subtraction and remainders.", inputs: ["1071", "462"], code:
+`Start code:
+    Ask "First number?" as number x.
+    Ask "Second number?" as number y.
+    Repeat until y is 0:
+        Remember rest as x % y.
+        Remember x as y.
+        Remember y as rest.
+    Say "The greatest common divisor is " + x + ".".` },
+    { title: "Sieve of Eratosthenes", kind: "famous", why: "A clever, fast way to find every prime number up to a limit.", story: "Eratosthenes of Cyrene, a Greek scholar who also measured the size of the Earth, described this method in the 3rd century BC: cross out the multiples of each prime, and what's left are the primes.", inputs: ["50"], code:
+`Start code:
+    Ask "Find primes up to?" as number top.
+    Remember crossed as an empty list of numbers.
+    For each k from 1 to top:
+        Add 0 to crossed.
+    For each p from 2 to top:
+        If item p of crossed is 0:
+            Say p.
+            Remember m as p * p.
+            Repeat while m is at most top:
+                Remember item m of crossed as 1.
+                Add p to m.` },
+    { title: "Fibonacci's rabbits", kind: "famous", why: "A number pattern that shows up in sunflowers, pine cones and shells.", story: "In 1202, Leonardo of Pisa (Fibonacci) asked in his book Liber Abaci how fast rabbits would multiply. The answer is the sequence 1, 1, 2, 3, 5, 8, 13...: each number is the two before it added together.", inputs: ["12"], code:
+`Start code:
+    Ask "How many months?" as number months.
+    Remember x as 1.
+    Remember y as 1.
+    For each month from 1 to months:
+        Say "Month " + month + ": " + x + " pairs of rabbits".
+        Remember next as x + y.
+        Remember x as y.
+        Remember y as next.` },
+    { title: "FizzBuzz", kind: "famous", why: "A children's counting game that became the most famous programming test.", story: "FizzBuzz started as a game for teaching children division. In 2007 a blog post by programmer Imran Ghory suggested it as a quick test for job interviews, and it has been a programming classic ever since.", code:
+`Start code:
+    For each n from 1 to 20:
+        If n is a multiple of 15:
+            Say "FizzBuzz".
+        Otherwise if n is a multiple of 3:
+            Say "Fizz".
+        Otherwise if n is a multiple of 5:
+            Say "Buzz".
+        Otherwise:
+            Say n.` },
+    { title: "Caesar's secret code", kind: "famous", why: "One of the first known codes for keeping messages secret.", story: "The Roman historian Suetonius wrote that Julius Caesar sent secret letters by moving every letter 3 places along the alphabet. It's easy to crack today, but it's where cryptography begins.", inputs: ["attack at dawn"], code:
+`Start code:
+    Ask "Message to hide:" as message.
+    Remember alphabet as "abcdefghijklmnopqrstuvwxyz".
+    Remember secret as "".
+    For each ch in message:
+        Remember place as the position of ch in alphabet.
+        If place is 0:
+            Add ch to secret.
+        Otherwise:
+            Add letter (place + 2) % 26 + 1 of alphabet to secret.
+    Say secret.` },
+    { title: "The Luhn check", kind: "famous", why: "The quick check that catches typing mistakes in credit card numbers.", story: "Hans Peter Luhn, a scientist at IBM, invented this check in the 1950s. Card numbers are made so that this sum always ends in 0, so a single wrong digit is spotted straight away.", inputs: ["79927398713"], code:
+`Start code:
+    Ask "Card number (digits only)?" as digits.
+    Remember total as 0.
+    Remember double as false.
+    For each k from the size of digits to 1:
+        Remember d as the number in letter k of digits.
+        Remember d2 as the whole part of d.
+        If double:
+            Remember d2 as d2 * 2.
+            If d2 is more than 9:
+                Subtract 9 from d2.
+        Add d2 to total.
+        Remember double as not double.
+    If total is a multiple of 10:
+        Say "Looks valid.".
+    Otherwise:
+        Say "There's a mistake in that number.".`.replace(/\bdouble\b/g, "doubleIt").replace(/For each k from the size of digits to 1:/, "For each step from 1 to the size of digits:\n        Remember k as the size of digits - step + 1.") },
+    { title: "Binary search", kind: "famous", why: "How a computer finds something in a sorted list in a few steps, by halving the list each time.", story: "John Mauchly, one of the builders of the ENIAC computer, described binary search in 1946. It's why searching a sorted list of a million items takes only about 20 steps.", inputs: ["37"], code:
+`Start code:
+    Remember nums as [2, 5, 8, 12, 16, 23, 37, 42, 56, 72, 91].
+    Ask "Number to find?" as number target.
+    Remember low1 as 1.
+    Remember high1 as the size of nums.
+    Remember steps as 0.
+    Remember found as false.
+    Repeat while low1 is at most high1 and not found:
+        Add 1 to steps.
+        Remember mid as (low1 + high1) / 2.
+        If item mid of nums is target:
+            Remember found as true.
+            Say "Found it at position " + mid + " in " + steps + " steps.".
+        Otherwise if item mid of nums is less than target:
+            Remember low1 as mid + 1.
+        Otherwise:
+            Remember high1 as mid - 1.
+    If not found:
+        Say "Not in the list (" + steps + " steps).".` },
+    { title: "The Collatz mystery", kind: "famous", why: "A rule so simple a child can follow it, that nobody has ever been able to prove always works.", story: "In 1937 Lothar Collatz asked: if you halve even numbers and triple-plus-one odd numbers, do you always reach 1? Computers have checked enormous numbers of starting values, but it is still an unsolved problem in maths.", inputs: ["27"], code:
+`Start code:
+    Ask "Pick a starting number:" as number n.
+    Remember steps as 0.
+    Remember highest as n.
+    Repeat until n is 1:
+        If n is even:
+            Remember n as n / 2.
+        Otherwise:
+            Remember n as n * 3 + 1.
+        Add 1 to steps.
+        Remember highest as the bigger of highest and n.
+    Say "Reached 1 in " + steps + " steps.".
+    Say "Highest number on the way: " + highest + ".".` },
+    { title: "Leap years", kind: "famous", why: "The rule that keeps our calendar in step with the Earth going round the Sun.", story: "In 1582 Pope Gregory XIII introduced the calendar most of the world uses today. Its leap year rule: every 4 years, but not every 100 years, except every 400 years.", inputs: ["2028"], code:
+`Start code:
+    Ask "Which year?" as number year.
+    If (year is a multiple of 4 and year is not a multiple of 100) or year is a multiple of 400:
+        Say year + " is a leap year: February has 29 days.".
+    Otherwise:
+        Say year + " is not a leap year.".` },
+    { title: "Egyptian multiplication", kind: "famous", why: "Multiplying using only doubling and halving, the same idea computers use inside their chips.", story: "The Rhind Mathematical Papyrus, written in ancient Egypt around 1550 BC, shows multiplication done by doubling. Computers multiply in a very similar way, using binary.", inputs: ["13", "24"], code:
+`Start code:
+    Ask "First number?" as number x.
+    Ask "Second number?" as number y.
+    Remember total as 0.
+    Repeat while x is more than 0:
+        If x is odd:
+            Add y to total.
+            Say "Use " + y.
+        Remember x as x / 2.
+        Remember y as y * 2.
+    Say "Answer: " + total.` },
+    { title: "Heron's square root", kind: "famous", why: "A guess-and-improve method that finds square roots very fast.", story: "Heron of Alexandria described this method about 2,000 years ago: guess, then average the guess with the number divided by the guess. Each round roughly doubles the number of correct digits.", inputs: ["2"], code:
+`Start code:
+    Ask "Square root of?" as decimal x.
+    Remember guess as x / 2.0.
+    Repeat 6 times:
+        Remember guess as (guess + x / guess) / 2.0.
+        Say guess.
+    Say "The library says: " + the square root of x.` }
+  ];
+
+  /* the same program for everyone, changing at 7:00 AM New York time */
+  function forDay(idx) {
+    const round = Math.floor(idx / L.length);
+    const order = Daily.rng("cotd|" + round).shuffle(L.map((_, k) => k));
+    return L[order[idx % L.length]];
+  }
+  function today() { const t = Daily.today(); return Object.assign({ day: t.index }, forDay(t.index)); }
+  return { LIST: L, forDay, today };
+})();
+if (typeof module !== "undefined") module.exports = Cotd;
+
 /* ===== Simple demo: accounts, progress, points, badges and unlocks ===== */
 /* To make accounts work on every device on your own website, paste your Supabase project's URL and public anon key here.
    Leave them empty to keep accounts on each device (or to use Claude sign-in inside Claude). */
@@ -11413,7 +11933,7 @@ const DEMOS = {
   "Bank account": ["Sam", "1", "50", "2", "80", "2", "20.5", "9", "3"],
   "To-do list": ["add", "feed the cat", "add", "homework", "show", "done", "1", "show", "quit"]
 };
-function demoFor() { return Object.keys(DEMOS).find(k => EXAMPLES[k] && code.value.trim() === EXAMPLES[k].trim()); }
+function demoFor() { return Object.keys(DEMOS).find(k => DEMOS[k] && EXAMPLES[k] && code.value.trim() === EXAMPLES[k].trim()); }
 $("demo").onclick = () => { const k = demoFor(); if (k) run(DEMOS[k].slice()); };
 function markLive(n) {
   gutter.querySelectorAll(".live").forEach(d => d.classList.remove("live"));
@@ -11731,7 +12251,7 @@ try { const s = localStorage.getItem("plain4-code"); if (s && s.trim()) { start 
 $("fname").value = startName;
 code.value = start; curLine = 0; renderHL(); compile();
 function startIDE() {
-  if (demoFor()) setTimeout(() => { if (!running) run(DEMOS[demoFor()].slice()); }, 500);
+  if (demoFor()) setTimeout(() => { const k = demoFor(); if (!running && k) run(DEMOS[k].slice()); }, 500);
   else if (good && !good.info.usesAsk) run();
   else line("Press Run to start the app.", "sys");
 }
@@ -11969,7 +12489,7 @@ function show(view, push) {
   if (view === "profile") renderProfile();
   if (view === "learn") { renderLessonList(); askSetup(300); }
   if (view === "practice") renderPractice();
-  if (view === "about") renderContinue();
+  if (view === "about") { renderContinue(); renderCotd(); }
   if (push !== false) { try { history.replaceState(null, "", "#" + view); } catch {} }
   window.scrollTo(0, 0);
   store.set("pd-view", view);
@@ -12001,6 +12521,27 @@ function renderContinue() {
   if (next) { const b = el("button", "primary"); b.type = "button"; b.textContent = "Continue: " + next.title; b.onclick = () => { openLesson(next.id); }; c.append(b); }
   const b2 = el("button"); b2.type = "button"; b2.textContent = "Practice"; b2.onclick = () => show("practice"); c.append(b2);
   box.append(c);
+}
+
+/* ---------- Code of the day ---------- */
+let cotdLang = "plain";
+function renderCotd() {
+  const box = $("cotdBox"); if (!box || typeof Cotd === "undefined") return;
+  const e = Cotd.today(), t = Daily.today();
+  let r = null; try { r = PL.build(e.code); } catch (x) { r = null; }
+  const text = { plain: e.code, python: r && Array.isArray(r.py) ? r.py.map(x => x.t).join("\n") : "", java: r && Array.isArray(r.java) ? r.java.map(x => x.t).join("\n") : "" };
+  const cls = classNames(e.code);
+  const show1 = lang => text[lang].split("\n").map(l => hl(l, HL_LANG[lang], lang === "plain" ? cls : new Set())).join("\n");
+  box.innerHTML = `<div class="cotdhead"><p class="eyebrow" style="margin:0">Code of the day · ${esc(Daily.label(t.index))} <span class="newtag">${e.kind === "famous" ? "Famous code" : "Everyday app"}</span></p><span class="muted small">Next one in ${esc(Daily.countdown(t.secondsLeft))}</span></div>
+    <h2>${esc(e.title)}</h2><p>${esc(e.why)}</p>${e.story ? `<p class="cotdstory">📜 ${esc(e.story)}</p>` : ""}
+    <div class="row cotdtabs" role="group" aria-label="Show the code in"><button type="button" data-l="plain">Simple</button><button type="button" data-l="python">Python</button><button type="button" data-l="java">Java</button></div>
+    <pre class="solpre cotdcode"></pre>
+    <div class="row"><button type="button" class="primary" data-act="ide">▶ Run it in the IDE</button><span class="muted small">${r && r.info.gui ? "This one is a screen app with buttons." : r && r.info.usesAsk ? "It will ask you some questions." : ""}</span></div>`;
+  const pre = box.querySelector(".cotdcode");
+  const pick = lang => { cotdLang = lang; pre.innerHTML = show1(lang); box.querySelectorAll(".cotdtabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === lang)); };
+  box.querySelectorAll(".cotdtabs button").forEach(b => { b.hidden = !text[b.dataset.l]; b.onclick = () => pick(b.dataset.l); });
+  pick(text[cotdLang] ? cotdLang : "plain");
+  box.querySelector('[data-act="ide"]').onclick = () => { setIdeLang("plain"); show("ide"); setTimeout(() => { setCode(e.code); try { localStorage.setItem("plain4-code", e.code); } catch {} if (r && !r.info.usesAsk && typeof run === "function") run(); }, 80); };
 }
 
 /* ---------- Learn ---------- */
